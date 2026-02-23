@@ -1,0 +1,23 @@
+{
+  "name": "productivity-os",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter @pos/api dev\" \"pnpm --filter @pos/web dev\"",
+    "dev:api": "pnpm --filter @pos/api dev",
+    "dev:web": "pnpm --filter @pos/web dev",
+    "build": "pnpm --filter @pos/shared build && pnpm --filter @pos/api build && pnpm --filter @pos/web build",
+    "db:generate": "pnpm --filter @pos/api db:generate",
+    "db:migrate": "pnpm --filter @pos/api db:migrate",
+    "db:seed": "pnpm --filter @pos/api db:seed",
+    "db:studio": "pnpm --filter @pos/api db:studio",
+    "lint": "pnpm -r lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "typescript": "^5.4.5"
+  },
+  "engines": {
+    "node": ">=20",
+    "pnpm": ">=9"
+  }
+}

@@ -1,0 +1,56 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #0f1117;
+  --bg-card: #1a1d27;
+  --bg-input: #252836;
+  --border: #2d3041;
+  --text: #e4e4e7;
+  --text-muted: #9ca3af;
+  --text-dim: #6b7280;
+  --accent: #5c7cfa;
+  --accent-hover: #4c6ef5;
+  --success: #34d399;
+  --warning: #fbbf24;
+  --danger: #f87171;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+}
+
+@layer components {
+  .card {
+    @apply bg-[var(--bg-card)] border border-[var(--border)] rounded-xl p-5;
+  }
+  .btn-primary {
+    @apply bg-brand-600 hover:bg-brand-700 text-white font-medium px-4 py-2 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-secondary {
+    @apply bg-[var(--bg-input)] hover:bg-[var(--border)] text-[var(--text)] font-medium px-4 py-2 rounded-lg transition-colors border border-[var(--border)];
+  }
+  .btn-danger {
+    @apply bg-red-600/20 hover:bg-red-600/30 text-red-400 font-medium px-4 py-2 rounded-lg transition-colors border border-red-600/30;
+  }
+  .btn-ghost {
+    @apply hover:bg-[var(--bg-input)] text-[var(--text-muted)] font-medium px-3 py-1.5 rounded-lg transition-colors;
+  }
+  .input {
+    @apply bg-[var(--bg-input)] border border-[var(--border)] text-[var(--text)] rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-brand-600/50 focus:border-brand-600 placeholder:text-[var(--text-dim)];
+  }
+  .label {
+    @apply block text-sm font-medium text-[var(--text-muted)] mb-1;
+  }
+  .badge {
+    @apply text-xs font-medium px-2 py-0.5 rounded-full;
+  }
+  .badge-studio { @apply bg-brand-600/20 text-brand-400; }
+  .badge-ironman { @apply bg-emerald-600/20 text-emerald-400; }
+  .badge-nutrition { @apply bg-amber-600/20 text-amber-400; }
+  .badge-finance { @apply bg-violet-600/20 text-violet-400; }
+  .badge-other { @apply bg-gray-600/20 text-gray-400; }
+}

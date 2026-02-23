@@ -1,0 +1,375 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── AUTH ────────────────────────────────────────────────────────
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  profiles Profile[]
+
+  @@map("users")
+}
+
+// ─── PROFILES ────────────────────────────────────────────────────
+
+model Profile {
+  id                 String   @id @default(cuid())
+  userId             String   @map("user_id")
+  name               String
+  timezone           String   @default("Europe/Berlin")
+  morningCheckinTime String   @default("07:00") @map("morning_checkin_time")
+  domainsEnabled     String[] @default(["studio"]) @map("domains_enabled")
+  strictness         Int      @default(3)
+  tone               String   @default("supportive")
+  weeklyOutcomeLimit Int      @default(3) @map("weekly_outcome_limit")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  agentSettings ProfileAgentSetting[]
+  studioPlan    StudioPlan?
+  initiatives   Initiative[]
+  ideas         Idea[]
+  risks         Risk[]
+  weeks         Week[]
+  checkins      DailyCheckin[]
+  ironmanPlan   IronmanPlan?
+  trainingSessions TrainingSession[]
+  nutritionTargets NutritionTarget[]
+  nutritionLogs NutritionLog[]
+  financeCategories FinanceCategory[]
+  transactions  Transaction[]
+  monthlyBudgets MonthlyBudget[]
+  aiRuns        AiRun[]
+
+  @@map("profiles")
+}
+
+model ProfileAgentSetting {
+  id        String  @id @default(cuid())
+  profileId String  @map("profile_id")
+  agentId   String  @map("agent_id")
+  enabled   Boolean @default(true)
+  provider  String?
+  model     String?
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, agentId])
+  @@map("profile_agent_settings")
+}
+
+// ─── STUDIO ──────────────────────────────────────────────────────
+
+model StudioPlan {
+  id                  String @id @default(cuid())
+  profileId           String @unique @map("profile_id")
+  mission             String @default("")
+  definitionOfSuccess String @default("") @map("definition_of_success")
+  values              String @default("")
+  positioning         String @default("")
+  businessAssumptions String @default("") @map("business_assumptions")
+  notNowList          String @default("") @map("not_now_list")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("studio_plans")
+}
+
+model Initiative {
+  id          String   @id @default(cuid())
+  profileId   String   @map("profile_id")
+  title       String
+  description String   @default("")
+  status      String   @default("planned") // planned|active|paused|done
+  quarterTag  String?  @map("quarter_tag")
+  targetDate  DateTime? @map("target_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  profile    Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  milestones Milestone[]
+  outcomes   WeekOutcome[]
+
+  @@map("initiatives")
+}
+
+model Milestone {
+  id           String  @id @default(cuid())
+  initiativeId String  @map("initiative_id")
+  title        String
+  done         Boolean @default(false)
+  sortOrder    Int     @default(0) @map("sort_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  initiative Initiative    @relation(fields: [initiativeId], references: [id], onDelete: Cascade)
+  outcomes   WeekOutcome[]
+
+  @@map("milestones")
+}
+
+model Idea {
+  id          String   @id @default(cuid())
+  profileId   String   @map("profile_id")
+  title       String
+  description String   @default("")
+  status      String   @default("inbox") // inbox|evaluating|not_now|accepted|rejected
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("ideas")
+}
+
+model Risk {
+  id         String   @id @default(cuid())
+  profileId  String   @map("profile_id")
+  title      String
+  likelihood Int      @default(3)
+  impact     Int      @default(3)
+  mitigation String   @default("")
+  status     String   @default("open") // open|mitigated|accepted|closed
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("risks")
+}
+
+// ─── CORE PRODUCTIVITY ───────────────────────────────────────────
+
+model Week {
+  id            String   @id @default(cuid())
+  profileId     String   @map("profile_id")
+  weekStartDate DateTime @map("week_start_date") @db.Date
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  profile  Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  outcomes WeekOutcome[]
+  nutritionTargets NutritionTarget[]
+
+  @@unique([profileId, weekStartDate])
+  @@map("weeks")
+}
+
+model WeekOutcome {
+  id                String  @id @default(cuid())
+  weekId            String  @map("week_id")
+  domain            String  @default("studio")
+  title             String
+  definitionOfDone  String  @map("definition_of_done")
+  priority          Int     @default(2)
+  timeBudgetMinutes Int?    @map("time_budget_minutes")
+  status            String  @default("not_started") // not_started|in_progress|done|dropped
+  initiativeId      String? @map("initiative_id")
+  milestoneId       String? @map("milestone_id")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  week       Week        @relation(fields: [weekId], references: [id], onDelete: Cascade)
+  initiative Initiative? @relation(fields: [initiativeId], references: [id], onDelete: SetNull)
+  milestone  Milestone?  @relation(fields: [milestoneId], references: [id], onDelete: SetNull)
+
+  @@map("week_outcomes")
+}
+
+model DailyCheckin {
+  id              String   @id @default(cuid())
+  profileId       String   @map("profile_id")
+  date            DateTime @db.Date
+  top1            String
+  secondary1      String?
+  secondary2      String?
+  energy          Int
+  sleepHours      Float    @map("sleep_hours")
+  trainingPlanned Boolean  @default(false) @map("training_planned")
+  blocker         String?
+  avoidanceTag    String?  @map("avoidance_tag")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, date])
+  @@map("daily_checkins")
+}
+
+// ─── IRONMAN ─────────────────────────────────────────────────────
+
+model IronmanPlan {
+  id               String   @id @default(cuid())
+  profileId        String   @unique @map("profile_id")
+  targetEventName  String   @default("Ironman 2027") @map("target_event_name")
+  targetEventDate  DateTime? @map("target_event_date")
+  phase            String   @default("base")
+  weeklyHoursTarget Float   @default(8) @map("weekly_hours_target")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("ironman_plans")
+}
+
+model TrainingSession {
+  id              String   @id @default(cuid())
+  profileId       String   @map("profile_id")
+  date            DateTime @db.Date
+  discipline      String   // swim|bike|run|strength|crossfit|mobility|other
+  sessionType     String   @default("") @map("session_type")
+  durationMinutes Int      @map("duration_minutes")
+  intensity       String   @default("moderate") // easy|moderate|hard
+  rpe             Int?
+  description     String?
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@map("training_sessions")
+}
+
+// ─── NUTRITION ───────────────────────────────────────────────────
+
+model NutritionTarget {
+  id              String   @id @default(cuid())
+  profileId       String   @map("profile_id")
+  weekId          String   @map("week_id")
+  proteinG        Int?     @map("protein_g")
+  waterL          Float?   @map("water_l")
+  mealQualityRule String   @default("2 high-quality meals/day") @map("meal_quality_rule")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  week    Week    @relation(fields: [weekId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, weekId])
+  @@map("nutrition_targets")
+}
+
+model NutritionLog {
+  id             String   @id @default(cuid())
+  profileId      String   @map("profile_id")
+  date           DateTime @db.Date
+  proteinMet     Boolean  @default(false) @map("protein_met")
+  waterMet       Boolean  @default(false) @map("water_met")
+  mealQualityMet Boolean  @default(false) @map("meal_quality_met")
+  notes          String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@unique([profileId, date])
+  @@map("nutrition_logs")
+}
+
+// ─── FINANCE ─────────────────────────────────────────────────────
+
+model FinanceCategory {
+  id        String   @id @default(cuid())
+  profileId String   @map("profile_id")
+  name      String
+  type      String   // income|expense|savings|investment
+  icon      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  profile      Profile       @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+  budgetItems  BudgetItem[]
+
+  @@map("finance_categories")
+}
+
+model Transaction {
+  id         String   @id @default(cuid())
+  profileId  String   @map("profile_id")
+  date       DateTime @db.Date
+  amount     Float
+  categoryId String?  @map("category_id")
+  merchant   String?
+  notes      String?
+  currency   String   @default("EUR")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  profile  Profile          @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  category FinanceCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  @@map("transactions")
+}
+
+model MonthlyBudget {
+  id            String   @id @default(cuid())
+  profileId     String   @map("profile_id")
+  month         DateTime @db.Date // first day of month
+  incomeTarget  Float    @default(0) @map("income_target")
+  savingsTarget Float    @default(0) @map("savings_target")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  profile     Profile      @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  budgetItems BudgetItem[]
+
+  @@unique([profileId, month])
+  @@map("monthly_budgets")
+}
+
+model BudgetItem {
+  id              String @id @default(cuid())
+  monthlyBudgetId String @map("monthly_budget_id")
+  categoryId      String @map("category_id")
+  plannedAmount   Float  @map("planned_amount")
+
+  monthlyBudget MonthlyBudget   @relation(fields: [monthlyBudgetId], references: [id], onDelete: Cascade)
+  category      FinanceCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([monthlyBudgetId, categoryId])
+  @@map("budget_items")
+}
+
+// ─── AI ──────────────────────────────────────────────────────────
+
+model AiRun {
+  id            String   @id @default(cuid())
+  profileId     String   @map("profile_id")
+  agentId       String   @map("agent_id")
+  provider      String
+  model         String
+  promptVersion String   @map("prompt_version")
+  inputHash     String   @map("input_hash")
+  inputJson     Json     @map("input_json")
+  resultJson    Json?    @map("result_json")
+  status        String   @default("pending") // pending|success|error
+  tokensInput   Int?     @map("tokens_input")
+  tokensOutput  Int?     @map("tokens_output")
+  latencyMs     Int?     @map("latency_ms")
+  errorMessage  String?  @map("error_message")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  profile Profile @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, inputHash, status])
+  @@map("ai_runs")
+}

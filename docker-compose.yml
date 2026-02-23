@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: pos-postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: pos
+      POSTGRES_PASSWORD: pos_local_dev
+      POSTGRES_DB: productivity_os
+    volumes:
+      - pos_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pos -d productivity_os"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  pos_pgdata:
