@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import { RegisterSchema, LoginSchema } from "@pos/shared";
 import prisma from "../lib/prisma";
 import { validate } from "../middleware/validate";
-import { signToken, AuthRequest } from "../middleware/auth";
+import { signToken, AuthRequest, authMiddleware } from "../middleware/auth";
 
 const router = Router();
 
@@ -54,7 +54,7 @@ router.post("/login", validate(LoginSchema), async (req, res) => {
   }
 });
 
-router.get("/me", async (req, res) => {
+router.get("/me", authMiddleware, async (req, res) => {
   try {
     const userId = (req as unknown as AuthRequest).userId as string;
     const user = await prisma.user.findUnique({
