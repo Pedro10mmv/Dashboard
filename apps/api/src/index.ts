@@ -14,8 +14,16 @@ import { authMiddleware, profileMiddleware } from "./middleware/auth";
 
 const app = express();
 const PORT = process.env.API_PORT || 3001;
+const corsOrigins = (
+  process.env.CORS_ORIGIN ||
+  process.env.WEB_ORIGIN ||
+  "http://localhost:3002,http://127.0.0.1:3002"
+)
+  .split(",")
+  .map((origin) => origin.trim())
+  .filter(Boolean);
 
-app.use(cors({ origin: ["http://localhost:3000"], credentials: true }));
+app.use(cors({ origin: corsOrigins, credentials: true }));
 app.use(express.json());
 
 // Health check
@@ -27,7 +35,6 @@ app.get("/api/health", (_req, res) => {
 app.use("/api/auth", authRoutes);
 
 // Protected routes
-app.use("/api/auth/me", authMiddleware, authRoutes);
 app.use("/api/profiles", authMiddleware, profileRoutes);
 
 // Profile-scoped routes (require auth + profile ownership)
